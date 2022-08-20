@@ -1,0 +1,164 @@
+---
+title: 기본 타입
+tags:
+  - TypeScript
+  - General Type
+---
+
+<br />
+
+### Boolean
+
+> true / false
+
+```typescript
+const isTrue: boolean = true; //✅
+
+const isTrue: boolean = 'true'; //❌ - Type 'string' is not assignable to type 'boolean'.
+```
+
+<br />
+
+### Number
+
+> 숫자
+
+TypeScript의 모든 숫자는 부동 소수 값이며, 부동 소수에는 number 타입이 붙는다.
+
+```typescript
+const age: number = 20; //✅
+
+const age: number = '스무살'; //❌ - Type 'string' is not assignable to type 'number'.
+```
+
+<br />
+
+### String
+
+> 문자열
+
+큰따옴표(`"`)나 작은따옴표(`'`)로 문자열 데이터를 감싼다.<br />
+템플릿 문자열을 사용하면 여러 줄에 걸쳐 문자열 작성이 가능하며 표현식(`${expr}`)을 포함시킬 수도 있는데, 이 문자열은 백틱(```)으로 감싸서 사용한다.
+
+```typescript
+const name: string = 'sumin'; //✅
+const sayHello: string = `Hello, ${name}`; //✅
+
+const name: string = 20; //❌ - Type 'number' is not assignable to type 'string'.
+```
+
+<br />
+
+### Array
+
+> 배열
+
+1. 배열 요소들을 나타나타내는 타입 뒤에 `[]`를 사용한다. → `string[]`
+2. 제네릭 배열 타입을 사용한다. → `Array<string>`
+
+```typescript
+const colors: string[] = ['red', 'blue', 'olive', 'yellow']; //✅
+const colors: Array<string> = ['red', 'blue', 'olive', 'yellow']; //✅
+
+const colors: string[] = ['red', 2, 'blue', 'olive']; //❌ - Type 'number' is not assignable to type 'string'.
+```
+
+<br />
+
+### Tuple
+
+> 요소의 타입과 개수가 고정된 배열을 표현할 수 있다.
+
+```typescript
+let student: [string, number];
+
+student = ['sumin', 20]; //✅
+
+student = [20, 'sumin']; //❌ - Type 'number' is not assignable to type 'string'. / Type 'string' is not assignable to type 'number'.
+```
+
+<br />
+
+### Enum
+
+> 특정 값들의 집합을 표현할 수 있다.
+
+<br />
+
+#### 숫자형 Enum
+
+```typescript
+// 초기 값을 지정하면 초기 값부터 auto-incrementing으로 1씩 차례로 증가한다.
+enum Sports {
+  Soccer = 7,
+  Baseball,
+  Basketball,
+}
+
+console.log(Sports.Soccer); // 7
+console.log(Sports.Baseball); // 8
+console.log(Sports.Basketball); // 9
+
+// 초기 값을 지정하지 않으면 0부터 auto-incrementing으로 1씩 차례로 증가한다.
+enum Sports {
+  Soccer,
+  Baseball,
+  Basketball,
+}
+
+console.log(Sports.Soccer); // 0
+console.log(Sports.Baseball); // 1
+console.log(Sports.Basketball); // 2
+```
+
+#### 문자형 Enum
+
+```typescript
+// 모든 값을 특정 문자 혹은 다른 Enum 값으로 초기화 해줘야 한다.
+enum Count {
+  First = 'First',
+  Second = 'Second',
+  Third = 'Third',
+}
+
+console.log(Count.First); //First
+console.log(Count.Second); //Second
+console.log(Count.Third); //Third
+```
+
+<br />
+
+### Any
+
+> 알지 못하는 타입을 표현할 수 있다.
+
+any 타입을 사용함으로써 타입 검사를 하지 않도록 할 수 있으며, 타입의 일부만 알고 전체는 알지 못할 때 유용하게 사용할 수 있다.
+
+```typescript
+const receipt: any[] = ['noodle', 1, '9800원'];
+```
+
+<br />
+
+### Void
+
+> 어떤 타입도 존재할 수 없음을 표현한다.
+
+보통 함수에서 반환 값이 없을 때 반환 타입을 표현하기 위해 사용한다.
+
+```typescript
+const consoleLog = (): void => {
+  console.log('2022.07.12');
+};
+```
+
+<br />
+
+### Null and Undefined
+
+```typescript
+const a: undefined = undefined;
+const b: null = null;
+
+console.log(a, b); // undefined null
+```

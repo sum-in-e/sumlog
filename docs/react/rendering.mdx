@@ -1,0 +1,82 @@
+---
+title: 렌더링(Rendering)
+tags:
+  - React
+  - rendering
+  - re-rendering
+---
+
+import image_hooks_lifeCycle from './images/hooks-lifecycle.png';
+
+<br />
+
+## 리액트에서 리렌더링(Re-rendering)이란?
+
+리액트에서 UI의 데이터는 반드시 props와 state로 관리되어야 하는데,<br />
+props와 state의 상태에 따른 UI를 구성하여 View를 보여주는 것을 **렌더링(Rendering)**,<br />
+props와 state의 변화에 따라 UI를 재구성하여 새로운 View를 보여주는 것을 **리렌더링(Re-rendering)**이라고
+한다.
+
+### 렌더링은 누가 담당하는가?
+
+리액트에서는 `render` 함수가 렌더링을 담당한다.
+
+`render` 함수는 컴포넌트가 어떻게 생겼는지 정의하고, View의 구성과 작동 방식에 대한 정보를 지닌 객체를 반환한다.
+
+### 리액트는 어떻게 View를 재구성하는가?
+
+리액트는 렌더링을 통하여 UI를 구성하는 컴포넌트를 다시 그릴지 말지를 결정하게 되는데, `render` 함수가 업데이트된 데이터를 이용해 새로운 View를 반환하면 가상돔(virtualDOM)을 이용하여 최소한의 연산으로 이전 View와 새로운 View를 비교하여 변경 사항을 식별하고 변화된 부분만을 일괄적으로 실제 DOM에 적용하여 UI를 재구성하게 된다.
+
+이러한 비교, 연산 과정을 리액트에서는 **reconciliation**이라고 한다.
+
+<br />
+
+## 렌더링 과정 살펴보기
+
+가상돔(virtualDOM)을 이용하여 변화된 부분만을 일괄적으로 실제 DOM에 적용하는 렌더링 과정을 리액트에서는 **Render Phase**와 **Commit Phase**라는 개념으로 나누어 설명한다.
+
+**Render Phase**에서는 컴포넌트를 렌더링하고 변경사항을 계산하는 모든 작업을 수행하며,<br/>
+**Commit Phase**에서는 DOM에 변경사항을 적용하는 작업을 수행한다.
+
+<div
+  style={{
+    width: '100%',
+    display: 'flex',
+    justifyContent: 'center',
+    padding: '0 100px',
+    '@media (max-width: 996px)': {
+      padding: '0',
+    },
+  }}
+>
+  <img src={image_hooks_lifeCycle} alt="리액트 훅의 생명주기" />
+</div>
+
+### 최초 렌더링 과정
+
+1. ReactDOM.render 호출
+2. Root element를 시작으로 마주치는 element의 type을 검사한다.
+3. 모든 컴포넌트들에 대한 검사가 끝나면 최종적으로 하나의 element tree(View)를 얻는다.
+   - 이 element tree를 가상돔(Virtual DOM)이라고 한다.
+4. 가상돔(Virtual DOM)을 실제 DOM에 반영한다.
+
+### 리렌더링 과정
+
+1. 컴포넌트의 state나 props가 변경된다.
+2. render 함수의 호출을 통해 새로운 element tree(View)가 반환된다.
+3. 새로운 element tree가 반환될 때마다, 기존의 element tree에서 변경된 부분을 계산하기 위한 reconciliation을 진행한다.
+   - 최초 렌더링과 마찬가지로 Root element부터 시작하여 모든 컴포넌트에 대한 검사를 통해 하나의 element tree를 얻는다.
+4. 기존 element tree와 새로운 element tree를 비교하여 차이점에 대해서만 일괄 업데이트를 진행한다.
+
+<br />
+
+## 컴포넌트가 리렌더링 되는 경우
+
+앞서 리렌더링 과정을 통해 **컴포넌트의 state나 props가 변경**되면 render 함수의 호출을 통해 새로운 element tree가 반환된다고 언급하였는데, 이를 포함하여 컴포넌트가 리렌더링 되는 경우는 다음과 같다.
+
+1. state가 변경될 때
+2. 부모 컴포넌트가 렌더링될 때
+   - 리액트는 기본적으로 부모 컴포넌트가 렌더링되면 모든 자식 컴포넌트를 순차적으로 리렌더링 시킨다. 이는 props의 변경 여부와 무관한 기본적인 동작이기 때문에 상위 컴포넌트가 렌더링 되면 하위에 있는 컴포넌트는 무조건 리렌더링 된다.
+3. 전달받은 props가 변경될 때
+4. forceUpdate 함수가 실행될 때
+5. shouldComponentUpdate가 true일 때

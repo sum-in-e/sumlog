@@ -1,0 +1,330 @@
+---
+title: CORS 에러와 이별하기(2)
+authors: [sumin]
+tags: [error, cors, vercel, severless functions]
+keywords: [error, cors, vercel, severless functions]
+---
+
+import image_1 from './1.png';
+import image_2 from './2.png';
+import image_3 from './3.png';
+import image_4 from './4.png';
+import image_5 from './5.png';
+import image_6 from './6.png';
+import image_7 from './7.png';
+import image_8 from './8.png';
+import image_9 from './9.png';
+import image_10 from './10.png';
+
+<br />
+
+이 글은 로컬 환경에서 개발 도중 발생한 CORS 에러가 아닌 배포 후 발생한 CORS 에러에 대한 해결 방법을 기록한 글입니다.
+
+로컬 환경에서의 CORS 에러 해결법은 이전 포스트 [CORS 에러와 이별하기(1)](https://sumlog.vercel.app/blog/2021/02/25/error-history-cors/first)를 참고해 주세요.
+
+---
+
+<br />
+
+로컬 환경에서 Proxy 설정으로 문제없이 작동하던 웹이 AWS S3를 이용해 배포를 진행하자 다시 CORS 에러가 발생했다.
+
+이제는 Proxy 설정이 아닌 다른 방법을 모색해야 하는 상황에서 Vercel의 Serverless Functions를 이용해 CORS 문제를 해결해 보기로 했다.
+
+<br />
+
+## Serverless란 무엇일까?
+
+명칭만 들으면 서버가 존재하지 않는 것 같지만, 정확히는 **직접 관리할 백엔드 서버가 없다**는 의미이다.
+
+서버리스 아키텍쳐를 이용하여 어플리케이션을 구축하면 서버 관리 및 운영에 대한 수고로움을 덜고 부담을 줄이는 장점을 얻을 수 있다.
+**즉, 서버를 직접 운영하지 않고도 효율적으로 서버에서 이루어지는 작업들을 할 수 있다.**
+
+<br />
+
+## Serverless의 구현 방식
+
+서버리스의 구현 방식에는 **BaaS(Backend as a Service)**와 **FaaS(Function as a Service)**가 있으며,
+본 글에서 이용한 **Vercel은 FaaS를 기반으로 하는 플랫폼**이다.
+
+<br />
+
+### BaaS와 FaaS
+
+**BaaS**의 대표적인 서비스에는 구글의 **Firebase**가 있다.
+앱 개발에 있어서 필요한 **백엔드 영역 (데이터베이스, 소셜 서비스 연동, 파일시스템 등)을 API로 제공**해 주며, **사용한 만큼 비용이 발생**하는 구조를 가진다.
+
+**FaaS**의 대표적인 서비스에는 **AWS Lambda, Google Cloud Functions**가 있다.
+Vercel은 정확히 말하면 위의 AWS lambda를 기반으로 하는 FaaS (Functions as a Service) 플랫폼이다. **앱 개발에 필요한 기능을 잘 개 쪼개서 함수로 제공**하며, 특정 이벤트 발생 시 실행되고 작업을 마치거나 일정 시간이 지나면 종료된다. **비용은 함수가 호출된 시간 혹은 횟수만큼 발생**한다.
+
+<br />
+
+## 어떻게 Serverless로 CORS 에러를 해결할 수 있을까?
+
+결론부터 말하자면 FaaS 플랫폼의 **Serverless Functions를 사용해 서버에서 외부 API로 요청**을 보냄으로써 SOP, CORS 정책에 영향을 받지 않고 리소스를 얻을 수 있다.
+
+<br />
+
+**SOP, CORS 정책을 지킨 응답인지 판별하는 주체는 서버가 아닌 브라우저**다. 서버 측에서는 우리가 요청한 데이터를 제공하지만, 출처가 동일하지 않거나 올바른 응답 헤더를 반환하지 않을 경우 브라우저에서 이를 차단하여 CORS 에러가 발생하는 것이다. **즉, 브라우저를 거치지 않고 서버에서 외부 API로 데이터를 요청할 수 있다면 SOP와 CORS 정책과 상관 없이 리소스를 받을 수 있다.**
+
+<br />
+
+## Vercel Serverless Functions로 API 요청하기
+
+### 1. vercel로 프로젝트 배포
+
+[Vercel](https://vercel.com/)에 깃헙 로그인 후, 배포할 프로젝트의 repository를 연결하여 프로젝트를 배포한다.
+
+Vercel은 **깃헙에 푸시가 이루어지면 이를 기반으로 자동으로 배포**되기 때문에 첫 배포 이후에는 깃헙 커밋만 하면 배포에 신경을 쓰지 않아도 된다.
+
+<br />
+
+### 2. 로컬에서 Serverless Functions 테스트를 위한 환경 설정하기
+
+로컬에서 터미널을 실행해 다음 명령으로 Vercel CLI를 설치한다.
+
+```
+npm i -g vercel || yarn global add vercel
+```
+
+<br />
+
+설치 후 프로젝트의 루트 디렉토리에서 다음 명령을 입력해 계정을 설정하고,
+설정이 끝나면 명령어를 한 번 더 입력하여 앞서 배포했던 Vercel 프로젝트를 연결한다.
+터미널에 나오는 질문과 항목에서 일치하는 것을 선택해 enter를 눌러주면 된다.
+
+```
+vercel
+```
+
+<br />
+
+설정이 끝났다면 이제부터 다음 명령어를 실행해 로컬 환경에서 Serverless Functions를 테스트할 수 있다.
+
+```
+vercel dev
+```
+
+<br />
+
+테스트할 수 있는 환경을 갖췄으니 이제 Serverless Functions를 생성을 해보자.
+
+<br />
+
+### 3. Serverless Functions 생성하기
+
+1. 프로젝트의 루트 디렉토리에 'api'라는 이름의 폴더를 생성한다.
+2. 해당 폴더 안에 원하는 파일명으로 js 파일을 생성한다. (여기서 생성한 js 파일이 하나의 Serverless Function이 된다.)
+
+<div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+  <img src={image_1} alt="api폴더 생성 후 폴더 구조" />
+</div>
+
+<br />
+
+### 3-1. Serverless Function 테스트
+
+제대로 Serverless Function이 생성되었는지 테스트를 해보자.
+
+api 폴더에 helloWorld.js 파일을 생성해 다음의 코드를 입력한다.
+
+```javascript title="helloWorld.js"
+export default (req, res) => {
+  res.statusCode = 200;
+  res.send({ message: 'helloWorld' });
+};
+```
+
+<br />
+
+개발 서버를 재시작(vercel dev)한 후 http://localhost:3000/api/helloWorld에 접속하면 다음과 같은 메세지를 확인할 수 있다.
+
+<br />
+
+<div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+  <img src={image_2} alt="helloWorld를 출력한 모습" />
+</div>
+
+<br />
+
+메세지가 정상적으로 출력 됐다면 제대로 Serverless Function이 생성된 것이다.
+혹시나 메세지가 뜨지 않는다면, 폴더명과 url을 일치하게 적었는지 확인해보자.
+
+<br />
+
+### 4. Serverless Functions로 API 요청하기
+
+테스트 파일을 지우고, 본격적으로 getListApi.js 파일을 생성하여 axios로 API에 요청을 해보았다.
+
+```javascript title="getListApi.js"
+import axios from 'axios';
+
+export default async (req, res) => {
+  res.statusCode = 200;
+  res.setHeader('Content-Type', 'application/json');
+
+  axios
+    .get(`http://book.interpark.com/api/bestSeller.api`, {
+      params: {
+        key: process.env.REACT_APP_API_KEY,
+        categoryId: '100',
+        output: 'json',
+      },
+    })
+    .then((response) => res.send(response.data));
+};
+```
+
+<br />
+
+요청 후 http://localhost:3000/api/getListApi에 접속하니 다음과 같이 데이터가 정상적으로 넘어오는 것을 확인할 수 있었다.
+
+<br />
+
+<div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+  <img src={image_3} alt="JSON 데이터를 넘겨 받은 모습" />
+</div>
+
+<br />
+
+이제 프론트에서 serverless funtion에 데이터를 요청하면 CORS 에러 없이 리소스를 받아올 수 있다.
+
+http://localhost:3000/api/getListApi에서 외부 API로 부터 리소스를 받았으니, 해당 url로 axios 요청을 보내면 된다.
+
+```javascript
+axios.get('api/getListApi');
+```
+
+<br />
+
+요청한 데이터가 정상적으로 화면에 출력된 모습이다.
+
+<br />
+
+<div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+  <img src={image_4} alt="전달 받은 데이터를 화면에 보여주었다." />
+</div>
+
+<br />
+
+이제 완성된 코드를 깃헙에 커밋 하면 배포까지 성공적으로 마무리할 수 있다.
+
+<br />
+
+### 5. 프로젝트 환경변수 설정
+
+> 🚨HTTP 요청 시 환경 변수를 사용하지 않는 경우, 해당 작업은 필요하지 않다.🚨
+> 환경 변수로 지정한 값을 HTTP 요청시 전달한다면 추가로 vercel에 환경변수를 설정해야 정상적인 요청이 가능하다.
+
+<br />
+
+CORS 에러 없이 데이터도 받아왔는데, 할 게 더 있다니..😱
+
+위 코드는 로컬 환경에서 테스트 했을 당시엔 문제 없이 데이터를 받아왔지만, 깃헙에 커밋하여 배포된 후에는 데이터를 받아 올 수 없었다. CORS 에러가 아닌 다른 문제가 생긴 것이다.
+
+<br />
+
+<div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+  <img
+    src={image_5}
+    alt="에러로 인해 데이터를 받아올 수 없어 화면이 비어버렸다."
+  />
+</div>
+
+<br />
+
+무엇이 문제였을까?
+
+본 글에서 사용한 API는 HTTP 요청 시 **API Key 값을 전달해 줘야 한다.**<br />
+필자의 경우 API Key 값을 암호화하기 위해 **.env** 파일에 process.env.REACT_APP_API_KEY라는
+이름의 **환경 변수**를 설정하여 key 값으로 주었고, **로컬 환경에서는 .env 파일에
+접근해 문제없이 key 값을 전달**할 수 있었다.<br />
+하지만 **.gitignore에 등록된 .env 파일이 깃헙에 올라가지 않으면서** 이를 기반으로
+배포된 Vercel이 **.env 파일에 접근할 수 없게 된 것**이다.
+
+분명 코드에 작성했던 key 값이 요청에서는 누락되어 있는 것을 볼 수 있다.
+
+<br />
+
+<div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+  <img
+    src={image_6}
+    alt="에러로 인해 데이터를 받아올 수 없어 화면이 비어버렸다."
+  />
+</div>
+
+<br />
+
+.env를 깃헙에 업로드 하지 않고도 Vercel이 환경 변수에 접근할 수 있도록 하기 위해서는 Vercel의 settings에 환경변수를 설정해주면 된다.
+
+<br />
+
+## Vercel 설정에서 환경변수 지정하기
+
+<br />
+
+<div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+  <img src={image_8} alt="누락된 key값" />
+</div>
+
+<br />
+
+[Vercel 공식문서: Environment Variables](https://vercel.com/docs/environment-variables#secrets)
+
+1. Vercel 홈페이지에 접속하여 배포한 project의 settings로 들어간다.
+2. 좌측 카테고리의 Environment Variables를 선택한다.
+3. key 값을 암호화 하기 위해 1번 항목의 Secret을 선택한다.
+4. .env에 입력했던 환경변수의 변수명과 값을 그대로 입력한다.
+5. Save!
+
+<br />
+
+성공적으로 저장된 경우 다음과 같이 환경 변수가 생성된다.
+
+<br />
+
+<div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+  <img src={image_8} alt="vercel 설정에 저장한 환경변수" />
+</div>
+
+<br />
+
+환경변수 지정 후 사이트를 재배포 했더니 정상적으로 key 값이 전달되었다.
+
+<br />
+
+<div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+  <img
+    src={image_9}
+    alt="key값이 정상적으로 전달 되어 데이터를 다시 받아올 수 있게 되었다."
+  />
+</div>
+
+<br />
+
+아래와 같이 데이터가 정상적으로 출력되는 것을 확인할 수 있다.
+
+<br />
+
+<div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+  <img src={image_10} alt="정상적으로 화면에 데이터가 뿌려진 모습" />
+</div>
+
+<br />
+
+## 글을 마치며
+
+처음 구글링을 했을 때 국내에서 작성된 Vercel Serverless Functions 사용법에 대한 글이 많지 않아서 당황했지만, 공식 문서와 해외에서 작성된 포스트들을 참고하면서 사용 방법을 익힐 수 있었고 이 또한 꽤나 유익한 시간이 됐던 것 같다. (덕분에 영어의 중요성을 다시 한번 느꼈다.😂)
+
+이 외에도 CORS 에러를 해결할 수 있는 다양한 방법이 있지만, 그중 하나를 직접 활용해봤다는 점과 가볍게나마 Vercel과 Serverless Functions를 접할 수 있었다는 점에서 지금은 꽤 만족스럽다.
+
+배포 시 CORS 에러를 직면한 분들에게 조금이나마 도움이 되길 바라며 글을 마친다.
+
+<br />
+
+---
+
+## Reference
+
+[Use Serverless Functions](https://www.twilio.com/blog/use-serverless-functions-send-sms-react-vercel-twilio) <br />
+[Going Serveless With Vercel](https://dev.to/sumitkolhe/going-serveless-with-vercel-5b4o) <br />
+[Serverless functions with Vercel](https://madewithlove.com/blog/software-engineering/serverless-functions-with-vercel/) <br />
